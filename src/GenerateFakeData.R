@@ -26,7 +26,7 @@ biz_matrix$Naics_3_digit = substr(biz_matrix$Naics_Code, 1, 3)
 biz_matrix$Naics_2_digit = substr(biz_matrix$Naics_Code, 1, 2)
 
 # Add in Naics names
-biz_matrix = left_join(biz_matrix, naics, by=c("Naics_3_digit" = "Naics_Code"))
+biz_matrix = left_join(biz_matrix, naics, by=c("Naics_2_digit" = "Naics_Code"))
 
 n_biz = nrow(biz_matrix)
 prob = 0.4
@@ -52,12 +52,14 @@ biz_matrix = biz_matrix %>%
 
 biz_matrix %>%
   ggplot() +
-  aes(x = B2R_score, y = R2B_score, color=Naics_2_digit) + 
+  aes(x = B2R_score, y = R2B_score) + 
   geom_point() +
   theme_bw() + 
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
-  xlab("Business to RVMS") +
-  ylab("RVMS to Business") +
+  labs(title = "Business Engagement Matrix",
+       subtitle = "Score",
+       x = "Business to RVMS",
+       y = "RVMS to Business") +
   scale_x_continuous(limits = c(0,6), expand = c(0, 0), labels = c(0,1,2,3,4,5,"")) +
   scale_y_continuous(limits = c(0,4), expand = c(0, 0), labels = c(0,1,2,3,"")) +
   geom_vline(xintercept = c( 1, 2, 3, 4, 5, 6)) +
@@ -88,6 +90,39 @@ biz_matrix %>%
         panel.border = element_blank()) +
   labs(title = "Business Composition of Roslindale",
        subtitle = "Percentage; Sums to 100%",
-       x = "3-digit NAICS Code") + 
-  geom_text(aes(label=round(freq,0)), position=position_dodge(width=0.9), hjust=-0.25) 
+       x = "2-digit NAICS Code") + 
+  geom_text(aes(label=round(freq,0)), position=position_dodge(width=0.9), hjust=-0.25)
+
+
+biz_matrix %>%
+  gather(Action, Value, R2B_email_sponsorship_promotion, R2B_offer_resources, R2B_liason, R2B_score,
+         B2R_event_participation, B2R_sponsorship_or_donation, B2R_share_business_info, B2R_volunteer,
+         B2R_use_rvms_resources, B2R_score) %>%
+  filter(Action != "B2R_score") %>%
+  filter(Action != "R2B_score") %>%
+  group_by(Action) %>%
+  summarize(counts = sum(Value),
+            n = n()) %>%
+  arrange(counts) %>%                                
+  mutate(name = factor(Action, Action),
+         freq = 100 * counts/n) %>%
+  ggplot() +
+  aes(x = name, y = freq) +
+  geom_bar(stat='identity',
+           fill = "#dd8d50") + 
+  coord_flip() +
+  scale_y_continuous(expand = expand_scale(mult = c(0, 0), 
+                                           add = c(0, 2))) + 
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 35)) + 
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        panel.border = element_blank()) +
+  labs(title = "Actions Taken by RVMS or Businesses",
+       subtitle = "Percent of Businesses",
+       x = "Action") + 
+  geom_text(aes(label=round(freq,0)), position=position_dodge(width=0.9), hjust=-0.25)
   
